@@ -27,8 +27,7 @@ typedef enum TokenType {
 	TOKEN_REDIRECT_IN,
 	TOKEN_REDIRECT_OUT,
 	TOKEN_REDIRECT_APPEND,
-	TOKEN_NEWLINE,
-	TOKEN_EOF,
+	TOKEN_EOL,
 } TokenType;
 
 typedef struct Token {
@@ -38,7 +37,5 @@ typedef struct Token {
 } Token;
 
 Token *tokenize(const char *input);
-
-void free_tokens(Token *head);
 
 #endif

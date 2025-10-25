@@ -11,7 +11,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-%.o: %.c main.h
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

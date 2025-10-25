@@ -9,6 +9,7 @@ typedef enum {
 	CMD_PIPE,
 	CMD_AND,
 	CMD_OR,
+	CMD_SEPARATOR,
 } CommandType;
 
 typedef struct SimpleCommand {
@@ -32,6 +33,6 @@ typedef struct Command {
 	} as;
 } Command;
 
-Command *parse(const Token *tokens);
+Command *parse(Token *tokens);
 
 #endif
