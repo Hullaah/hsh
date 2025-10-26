@@ -167,6 +167,7 @@ static void handleWord(void)
 	char *string = strdup("");
 	size_t length = 0;
 	size_t capacity = 0;
+	bool has_quotes_before_equal = false, found_equals = false;
 
 	if (!string) {
 		fprintf(stderr, "Error: malloc failed\n");
@@ -185,12 +186,13 @@ static void handleWord(void)
 				shell->had_error = true;
 				return;
 			}
+			if (!found_equals)
+				has_quotes_before_equal = true;
 			advance();
 			size_t str_length = current - start - 2;
 			char *substr = malloc(str_length + 1);
 			if (!substr) {
-				fprintf(stderr,
-					"Error: malloc failed\n");
+				fprintf(stderr, "Error: malloc failed\n");
 				shell->fatal_error = true;
 			}
 			strncpy(substr, &source[start + 1], str_length);
@@ -199,13 +201,15 @@ static void handleWord(void)
 			free(substr);
 
 		} else {
+			if (peek() == '=' && !found_equals)
+				found_equals = true;
 			append(&string, &length, &capacity, "%c", advance());
 		}
 	}
 
 	if (strcmp(string, "") != 0) {
 		size_t equ_pos = strcspn(string, "=");
-		if (equ_pos > 0 && isValidIdentifier(string, equ_pos)) {
+		if (!has_quotes_before_equal && equ_pos > 0 && isValidIdentifier(string, equ_pos)) {
 			addToken(TOKEN_ASSIGNMENT_WORD, string);
 			return;
 		}

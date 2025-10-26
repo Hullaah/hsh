@@ -10,6 +10,20 @@
 
 ShellState *shell;
 
+static char *token_string[] = {
+	[TOKEN_ASSIGNMENT_WORD] = "TOKEN_ASSIGNMENT_WORD",
+	[TOKEN_WORD] = "TOKEN_WORD",
+	[TOKEN_SEMICOLON] = "TOKEN_SEMICOLON",
+	[TOKEN_REDIRECT_IN] = "TOKEN_REDIRECT_IN",
+	[TOKEN_REDIRECT_OUT] = "TOKEN_REDIRECT_OUT",
+	[TOKEN_REDIRECT_APPEND] = "TOKEN_REDIRECT_APPEND",
+	[TOKEN_BACKGROUND] = "TOKEN_BACKGROUND",
+	[TOKEN_PIPE] = "TOKEN_PIPE",
+	[TOKEN_AND] = "TOKEN_AND",
+	[TOKEN_OR] = "TOKEN_OR",
+	[TOKEN_EOL] = "TOKEN_EOL"
+};
+
 static int repl(FILE *stream)
 {
 	char *line = NULL;
@@ -28,7 +42,9 @@ static int repl(FILE *stream)
 		Token *current = tokens;
 		while (current != NULL) {
 			// For debugging: print token types and lexemes
-			fprintf(stdout, "Lexeme: %s\n", current->lexeme);
+			fprintf(stdout, "[%s: '%s']\n",
+				token_string[current->type],
+				current->lexeme);
 			current = current->next;
 		}
 		free(line);
@@ -46,6 +62,7 @@ static int repl(FILE *stream)
 		}
 		line = NULL;
 	}
+	putchar('\n');
 	return (0);
 }
 
