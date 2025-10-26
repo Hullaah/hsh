@@ -209,7 +209,8 @@ static void handleWord(void)
 
 	if (strcmp(string, "") != 0) {
 		size_t equ_pos = strcspn(string, "=");
-		if (!has_quotes_before_equal && equ_pos > 0 && isValidIdentifier(string, equ_pos)) {
+		if (strchr(string, '=') && !has_quotes_before_equal &&
+		    equ_pos > 0 && isValidIdentifier(string, equ_pos)) {
 			addToken(TOKEN_ASSIGNMENT_WORD, string);
 			return;
 		}
