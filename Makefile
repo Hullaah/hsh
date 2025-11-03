@@ -3,19 +3,26 @@ CFLAGS := -Wall -Werror -Wextra -pedantic -Iinclude -std=gnu11 -O2
 TARGET := hsh
 DEBUGFLAGS := -g -O0 -DDEBUG
 
-SRCS := $(wildcard *.c)
-OBJS := $(SRCS:.c=.o)
+SRCDIR := src
+BUILDDIR := build
+INCDIR := include
 
-all: $(TARGET)
+SRCS := $(wildcard $(SRCDIR)/*.c)
+OBJS := $(patsubst $(SRCDIR)/%.c,$(BUILDDIR)/%.o,$(SRCS))
+
+all: $(BUILDDIR) $(TARGET)
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-%.o: %.c
+$(BUILDDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -rf $(BUILDDIR) $(TARGET)
 
 re: clean all
 
