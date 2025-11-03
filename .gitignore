@@ -56,3 +56,4 @@ dkms.conf
 compile_commands.json
 hsh
 *.sh
+build/

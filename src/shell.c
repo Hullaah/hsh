@@ -6,94 +6,113 @@
 #include "token.h"
 #include <stdlib.h>
 #include <string.h>
+/**
+ * shell_init - Initializes the shell state.
+ * @name: Name of the shell executable.
+ * @is_interactive: Boolean indicating if the shell is in interactive mode.
+ *
+ * Return: Pointer to the initialized ShellState structure, or NULL on failure.
+ */
+ShellState *shell_init(char *name, bool is_interactive)
+{
+	ShellState *shell = malloc(sizeof(ShellState));
+	if (!shell)
+		return NULL;
 
-ShellState *shell_init(char *name, bool is_interactive) {
-        ShellState *shell = malloc(sizeof(ShellState));
-        if (!shell)
-                return NULL;
-
-        shell->fatal_error = false;
-        shell->had_error = false;
-        shell->is_interactive_mode = is_interactive;
-        shell->line_number = 0;
-        shell->name = name;
-        return shell;
+	shell->fatal_error = false;
+	shell->had_error = false;
+	shell->is_interactive_mode = is_interactive;
+	shell->line_number = 0;
+	shell->name = name;
+	return shell;
+}
+/**
+ * shell_free - Frees the shell state.
+ * @shell: Pointer to the ShellState structure to free.
+ */
+void shell_free(ShellState *shell)
+{
+	free(shell);
 }
 
-void shell_free(ShellState *shell) { free(shell); }
+/**
+ * shell_repl - Runs the Read-Eval-Print Loop (REPL) for the shell.
+ * @shell: Pointer to the ShellState structure.
+ * @stream: Input stream to read commands from.
+ */
+void shell_repl(ShellState *shell, FILE *stream)
+{
+	char *line = NULL;
+	size_t n = 0;
+	ssize_t nread = 0;
 
-void shell_repl(ShellState *shell, FILE *stream) {
-        char *line = NULL;
-        size_t n = 0;
-        ssize_t nread = 0;
+	while (true) {
+start:
+		shell->line_number++;
+		if (shell->is_interactive_mode)
+			fprintf(stdout, "$ ");
 
-        while (true) {
-        start:
-                shell->line_number++;
-                if (shell->is_interactive_mode)
-                        fprintf(stdout, "$ ");
+		nread = getline(&line, &n, stream);
+		if (nread < 0) {
+			free(line);
+			break;
+		}
 
-                nread = getline(&line, &n, stream);
-                if (nread < 0) {
-                        free(line);
-                        break;
-                }
+		Token *tokens = tokenize(shell, line);
+		free(line);
+		line = NULL;
 
-                Token *tokens = tokenize(shell, line);
-                free(line);
-                line = NULL;
+		if (shell->fatal_error) {
+			token_free_list(tokens);
+			return;
+		}
+		if (shell->had_error) {
+			token_free_list(tokens);
+			shell->had_error = false;
+			continue;
+		}
 
-                if (shell->fatal_error) {
-                        token_free_list(tokens);
-                        return;
-                }
-                if (shell->had_error) {
-                        token_free_list(tokens);
-                        shell->had_error = false;
-                        continue;
-                }
+		Token **commands = token_split_by_semicolon(shell, tokens);
+		if (shell->fatal_error) {
+			Token **runner = commands;
+			while (*runner) {
+				token_free_list(*runner);
+				runner++;
+			}
+			free(commands);
+			return;
+		}
 
-                Token **commands = token_split_by_semicolon(shell, tokens);
-                if (shell->fatal_error) {
-                        Token **runner = commands;
-                        while (*runner) {
-                                token_free_list(*runner);
-                                runner++;
-                        }
-                        free(commands);
-                        return;
-                }
+		Token **ptr = commands;
+		for (; *ptr; ptr++) {
+			Command *command = parse(shell, *ptr);
+			execute_command(command);
+			command_free(command);
 
-                Token **ptr = commands;
-                for (; *ptr; ptr++) {
-                        Command *command = parse(shell, *ptr);
-                        execute_command(command);
-                        command_free(command);
+			if (shell->fatal_error) {
+				while (*ptr) {
+					token_free_list(*ptr);
+					ptr++;
+				}
+				free(commands);
+				return;
+			}
+			if (shell->had_error) {
+				shell->had_error = false;
+				while (*ptr) {
+					token_free_list(*ptr);
+					ptr++;
+				}
+				free(commands);
+				if (shell->is_interactive_mode)
+					goto start;
+				return;
+			}
+			token_free_list(*ptr);
+		}
+		free(commands);
+	}
 
-                        if (shell->fatal_error) {
-                                while (*ptr) {
-                                        token_free_list(*ptr);
-                                        ptr++;
-                                }
-                                free(commands);
-                                return;
-                        }
-                        if (shell->had_error) {
-                                shell->had_error = false;
-                                while (*ptr) {
-                                        token_free_list(*ptr);
-                                        ptr++;
-                                }
-                                free(commands);
-                                if (shell->is_interactive_mode)
-                                        goto start;
-                                return;
-                        }
-                        token_free_list(*ptr);
-                }
-                free(commands);
-        }
-
-        if (shell->is_interactive_mode)
-                putchar('\n');
+	if (shell->is_interactive_mode)
+		putchar('\n');
 }
