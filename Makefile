@@ -1,5 +1,5 @@
 CC := gcc
-CFLAGS := -Wall -Werror -Wextra -pedantic -Iinclude -std=gnu11 -O2
+CFLAGS := -Wall -Werror -Wextra -pedantic -I./src/include -std=gnu23 -O2
 TARGET := hsh
 DEBUGFLAGS := -g -O0 -DDEBUG
 

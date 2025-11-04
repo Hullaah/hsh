@@ -1,8 +1,9 @@
 #include "executor.h"
+#include "shell.h"
 
-int execute_command(Command *command)
+int execute_command(ShellState *shell [[maybe_unused]],
+		    Command *command [[maybe_unused]])
 {
-	(void)command;
 	// Execution logic to be implemented
 	return 0;
 }
