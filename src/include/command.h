@@ -8,7 +8,7 @@ typedef enum {
 	CMD_PIPE,
 	CMD_AND,
 	CMD_OR,
-	CMD_SEPARATOR,
+	CMD_BACKGROUND,
 } CommandType;
 
 typedef struct SimpleCommand {

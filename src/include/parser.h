@@ -1,9 +1,9 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "command.h"
-#include "shell.h"
-#include "token.h"
+#include <command.h>
+#include <shell.h>
+#include <token.h>
 
 typedef struct Parser {
 	Token *current;

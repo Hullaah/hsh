@@ -1,4 +1,4 @@
-#include "parser.h"
+#include <parser.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -350,7 +350,7 @@ static Command *parse_command(Parser *p)
 			return NULL;
 		}
 		parent->as.binary.left = cmd;
-		parent->type = CMD_SEPARATOR;
+		parent->type = CMD_BACKGROUND;
 		parent->as.binary.right = right;
 		cmd = parent;
 	}

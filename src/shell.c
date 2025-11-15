@@ -1,9 +1,9 @@
-#include "shell.h"
-#include "command.h"
-#include "executor.h"
-#include "lexer.h"
-#include "parser.h"
-#include "token.h"
+#include <shell.h>
+#include <command.h>
+#include <executor.h>
+#include <lexer.h>
+#include <parser.h>
+#include <token.h>
 #include <stdlib.h>
 #include <string.h>
 /**

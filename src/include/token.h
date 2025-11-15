@@ -1,7 +1,7 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
-#include "shell.h"
+#include <shell.h>
 
 typedef enum TokenType {
 	TOKEN_WORD,

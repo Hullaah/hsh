@@ -1,4 +1,4 @@
-#include "command.h"
+#include <command.h>
 #include <stdlib.h>
 
 void command_free(Command *command)
