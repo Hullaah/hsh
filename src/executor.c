@@ -29,7 +29,7 @@ static int execute_simple_command(ShellState *shell, SimpleCommand *simple,
 		return -1;
 	} else if (pid > 0) {
 		if (is_background) {
-			printf("[1] %d\n", pid);
+			printf("[1 ] %d\n", pid);
 			return 0;
 		} else {
 			waitpid(pid, &status, 0);
@@ -50,16 +50,13 @@ static int execute_simple_command(ShellState *shell, SimpleCommand *simple,
 			close(in);
 		}
 		if (simple->output_file) {
+			mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
 			if (simple->append_output) {
-				out = open(simple->output_file,
-					   O_WRONLY | O_CREAT | O_APPEND,
-					   S_IRUSR | S_IWUSR | S_IRGRP |
-						   S_IROTH);
+				int flags = O_WRONLY | O_CREAT | O_APPEND;
+				out = open(simple->output_file, flags, mode);
 			} else {
-				out = open(simple->output_file,
-					   O_WRONLY | O_CREAT | O_TRUNC,
-					   S_IRUSR | S_IWUSR | S_IRGRP |
-						   S_IROTH);
+				int flags = O_WRONLY | O_CREAT | O_TRUNC;
+				out = open(simple->output_file, flags, mode);
 			}
 			if (out < 0) {
 				fprintf(stderr, "%s: %s: %s\n", shell->name,
@@ -90,8 +87,47 @@ static int execute_simple_command(ShellState *shell, SimpleCommand *simple,
 	return 0;
 }
 
-int execute_command(ShellState *shell [[maybe_unused]],
-		    Command *command [[maybe_unused]])
+int execute_pipeline(ShellState *shell, Command *left, Command *right)
+{
+	int pipefd[2], status;
+	if (pipe(pipefd) == -1) {
+		fprintf(stderr, "%s: pipe failed: %s\n", shell->name,
+			strerror(errno));
+		return -1;
+	}
+	pid_t left_pid = fork();
+	if (left_pid < 0) {
+		fprintf(stderr, "%s: fork failed: %s\n", shell->name,
+			strerror(errno));
+		return -1;
+	} else if (left_pid == 0) {
+		dup2(pipefd[1], STDOUT_FILENO);
+		close(pipefd[1]);
+		close(pipefd[0]);
+		status = execute_command(shell, left);
+		exit(status);
+	}
+	pid_t right_pid = fork();
+	if (right_pid < 0) {
+		fprintf(stderr, "%s: fork failed: %s\n", shell->name,
+			strerror(errno));
+		return -1;
+	} else if (right_pid == 0) {
+		dup2(pipefd[0], STDIN_FILENO);
+		close(pipefd[0]);
+		close(pipefd[1]);
+		status = execute_command(shell, right);
+		exit(status);
+	} else {
+		close(pipefd[0]);
+		close(pipefd[1]);
+		waitpid(left_pid, NULL, 0);
+		waitpid(right_pid, &status, 0);
+	}
+	return status;
+}
+
+int execute_command(ShellState *shell, Command *command)
 {
 	int status;
 
@@ -104,19 +140,20 @@ int execute_command(ShellState *shell [[maybe_unused]],
 						command->is_background);
 		break;
 	case CMD_PIPE:
-		fprintf(stderr,
-			"Executor: Pipe execution not implemented yet.\n");
-		status = 0;
+		status = execute_pipeline(shell, command->as.binary.left,
+					  command->as.binary.right);
 		break;
 	case CMD_AND:
-		fprintf(stderr,
-			"Executor: AND execution not implemented yet.\n");
-		status = 0;
+		status = execute_command(shell, command->as.binary.left);
+		if (!status)
+			status = execute_command(shell,
+						 command->as.binary.right);
 		break;
 	case CMD_OR:
-		fprintf(stderr,
-			"Executor: OR execution not implemented yet.\n");
-		status = 0;
+		status = execute_command(shell, command->as.binary.left);
+		if (status)
+			status = execute_command(shell,
+						 command->as.binary.right);
 		break;
 	case CMD_BACKGROUND:
 		fprintf(stderr,
@@ -124,8 +161,10 @@ int execute_command(ShellState *shell [[maybe_unused]],
 		status = 0;
 		break;
 	default:
+#ifdef DEBUG
 		fprintf(stderr, "Executor: Unknown command type.\n");
 		status = -1;
+#endif
 		break;
 	}
 	return status;
