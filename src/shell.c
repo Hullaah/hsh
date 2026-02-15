@@ -86,7 +86,7 @@ start:
 		Token **ptr = commands;
 		for (; *ptr; ptr++) {
 			Command *command = parse(shell, *ptr);
-			execute_command(shell, command);
+			execute(shell, command);
 			command_free(command);
 
 			if (shell->fatal_error) {

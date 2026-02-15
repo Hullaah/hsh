@@ -1,3 +1,4 @@
+#include <token.h>
 #include <parser.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -140,6 +141,11 @@ static Command *parse_simple_command(Parser *p)
 		free(simple->envp);
 		free(simple);
 		return NULL;
+	} else if ((parser_peek(p)->type == TOKEN_AND ||
+		    parser_peek(p)->type == TOKEN_OR ||
+		    parser_peek(p)->type == TOKEN_PIPE) &&
+		   parser_previous(p) != NULL &&
+		   parser_previous(p)->type == TOKEN_ASSIGNMENT_WORD) {
 	} else {
 		p->shell->had_error = true;
 		printf("%s: %d: Syntax error: \"%s\" unexpected\n",

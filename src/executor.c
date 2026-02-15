@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <builtins.h>
 
 static int execute_simple_command(ShellState *shell, SimpleCommand *simple,
 				  bool is_background)
@@ -29,7 +30,7 @@ static int execute_simple_command(ShellState *shell, SimpleCommand *simple,
 		return -1;
 	} else if (pid > 0) {
 		if (is_background) {
-			printf("[1 ] %d\n", pid);
+			printf("[1] %d\n", pid);
 			return 0;
 		} else {
 			waitpid(pid, &status, 0);
@@ -87,6 +88,19 @@ static int execute_simple_command(ShellState *shell, SimpleCommand *simple,
 	return 0;
 }
 
+static int execute_command(ShellState *shell, SimpleCommand *command,
+			   bool is_background)
+{
+	int (*builtin_func)(ShellState *, SimpleCommand *, bool);
+	if (command->argc == 0)
+		// modify shell environment for variable assignment
+		return 0;
+	else if ((builtin_func = get_builtin(command->argv[0])) != NULL)
+		return builtin_func(shell, command, is_background);
+	else
+		return execute_simple_command(shell, command, is_background);
+}
+
 int execute_pipeline(ShellState *shell, Command *left, Command *right)
 {
 	int pipefd[2], status;
@@ -104,7 +118,7 @@ int execute_pipeline(ShellState *shell, Command *left, Command *right)
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
 		close(pipefd[0]);
-		status = execute_command(shell, left);
+		status = execute(shell, left);
 		exit(status);
 	}
 	pid_t right_pid = fork();
@@ -116,7 +130,7 @@ int execute_pipeline(ShellState *shell, Command *left, Command *right)
 		dup2(pipefd[0], STDIN_FILENO);
 		close(pipefd[0]);
 		close(pipefd[1]);
-		status = execute_command(shell, right);
+		status = execute(shell, right);
 		exit(status);
 	} else {
 		close(pipefd[0]);
@@ -127,7 +141,7 @@ int execute_pipeline(ShellState *shell, Command *left, Command *right)
 	return status;
 }
 
-int execute_command(ShellState *shell, Command *command)
+int execute(ShellState *shell, Command *command)
 {
 	int status;
 
@@ -136,24 +150,22 @@ int execute_command(ShellState *shell, Command *command)
 
 	switch (command->type) {
 	case CMD_SIMPLE:
-		status = execute_simple_command(shell, &command->as.command,
-						command->is_background);
+		status = execute_command(shell, &command->as.command,
+					 command->is_background);
 		break;
 	case CMD_PIPE:
 		status = execute_pipeline(shell, command->as.binary.left,
 					  command->as.binary.right);
 		break;
 	case CMD_AND:
-		status = execute_command(shell, command->as.binary.left);
+		status = execute(shell, command->as.binary.left);
 		if (!status)
-			status = execute_command(shell,
-						 command->as.binary.right);
+			status = execute(shell, command->as.binary.right);
 		break;
 	case CMD_OR:
-		status = execute_command(shell, command->as.binary.left);
+		status = execute(shell, command->as.binary.left);
 		if (status)
-			status = execute_command(shell,
-						 command->as.binary.right);
+			status = execute(shell, command->as.binary.right);
 		break;
 	case CMD_BACKGROUND:
 		fprintf(stderr,
@@ -161,10 +173,8 @@ int execute_command(ShellState *shell, Command *command)
 		status = 0;
 		break;
 	default:
-#ifdef DEBUG
 		fprintf(stderr, "Executor: Unknown command type.\n");
 		status = -1;
-#endif
 		break;
 	}
 	return status;

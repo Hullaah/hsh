@@ -4,6 +4,6 @@
 #include <command.h>
 #include <shell.h>
 
-int execute_command(ShellState *shell, Command *command);
+int execute(ShellState *shell, Command *command);
 
 #endif
